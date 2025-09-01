@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <title>Float: Guanabara</title>
+  <subtitle>Uma desconferência</subtitle>
+
+  <description markup="djot">
+  # O que é o Float: Guanabara
+
+  Uma conferência virtual para a galera do [DevJR](https://t.me/@developersRJ). 
+
+  ## Quando
+
+  As palestras entram no ar aqui no site no dia 01/10/25.
+
+  ## Como palestras
+
+  Use nosso call for papers é bem simples. Grave uma palestra entre 5 e 15 minutos. Preencha o formulário e pronto. Se precisar de ajuda entre em contato com os admins do canal no Telegram.
+
+  ## Como assistir as palestras
+
+  Para assistir as palestras, basta abrir o site no dia do evento e clicar na palestra que você quiser ver.
+  </description>
+
+  <location markup="djot">
+  # Onde Acontece
+
+  Na internet mesmo. Ninguém mais tem tempo ou dinheiro pra ficar indo pra conferência. Ainda mais levando em conta que boa parte da comunidade do DevRJ não esta mais no RJ.
+  </location>
+
+  <date>2025-09-01</date>
+  <banner></banner>
+  <submissions type="external" url="http://example.com">Call4Papers</submissions>
+  <speakers></speakers>
+  <sponsors markup="djot">
+    # Patrocinadores
+
+    Esse evento é patrocinado pela [Amora Labs](https://amoralabs.com).
+  </sponsors>
+  <schedule></schedule>
+  <menu>
+    <link url="">Grupo no Telegram</link>
+    <link url="https://discord.gg/n38FvbUY">Discord</link>
+  </menu>
+</configuration>

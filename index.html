@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+  <head>
+    <title>• a picoconf •</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.css"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "p2p-media-loader-core": "https://cdn.jsdelivr.net/npm/p2p-media-loader-core@^2/dist/p2p-media-loader-core.es.min.js",
+          "p2p-media-loader-hlsjs": "https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@^2/dist/p2p-media-loader-hlsjs.es.min.js",
+          "mithril": "https://cdn.jsdelivr.net/npm/mithril@2.3.5/+esm",
+          "djot": "https://cdn.jsdelivr.net/npm/@djot/djot@0.3.2/+esm"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>loading...</h1>
+    </main>
+  </body>
+  <script type="module">
+    import m from "mithril";
+    import djot from "djot";
+
+    /* 
+    loading the "configuration.xml" and preparing a xml
+    document to be used with xpath routines.
+
+    That xml contains the information about the conference/meetup.
+    */
+    const url = "configuration.xml";
+    const response = await fetch(url);
+    const text = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, "text/xml");
+    const conf = doc.documentElement;
+    const root = document.body;
+
+    /*
+    == XML & Common functions ============================
+
+    These functions make it easier to query the xml for data.
+
+    xpath is a very powerful spec but it is clunky to use inside
+    most web browsers. The functions below make it easier.
+
+    There are also helper functions to aid processing djot and
+    inserting it inside mithril components.
+
+    XPath stands for "XML Path Language". It uses a non-XML syntax to provide a flexible way of addressing (pointing to) different parts of an XML document.
+
+    Djot is a light markup syntax. It derives most of its features from commonmark, but it fixes a few things that make commonmark's syntax complex and difficult to parse efficiently. It is also much fuller-featured than commonmark
+
+    More about xpath: https://webdocs.dev/en-us/docs/web/xpath
+    more about djot: https://www.djot.net/
+    */
+
+    function nodeFromPath(path) {
+      const data = doc.evaluate(
+        path,
+        conf,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null,
+      ).singleNodeValue;
+
+      return data;
+    }
+
+    function iteratorFromPath(path) {
+      const data = doc.evaluate(path, conf, null, XPathResult.ANY_TYPE, null);
+
+      return data;
+    }
+
+    function valueFromPath(path) {
+      const data = nodeFromPath(path);
+
+      if (
+        data.hasAttribute("markup") &&
+        data.getAttribute("markup") == "djot"
+      ) {
+        const doc = djot.parse(data.textContent);
+        const rendered = djot.renderHTML(doc);
+        return rendered;
+      } else {
+        return data.textContent;
+      }
+    }
+
+    function attributeFromPath(path, attribute) {
+      const data = nodeFromPath(`${path}/@${attribute}`);
+      return data.nodeValue;
+    }
+
+    function mdjot(strings) {
+      const doc = djot.parse(strings);
+      const rendered = djot.renderHTML(doc);
+      return m.trust(rendered);
+    }
+
+    /*
+    == Common components ====================
+
+    This section contains mithril components that are 
+    reused between routes. Mostly the Header and Footer
+    compoentns.
+
+    The header includes the submissions link from the xml
+    and also the menus.
+    */
+
+    const makeMenuItem = (link, label) => {
+      return m("li", m("a", { href: link, target: "_blank" }, label));
+    };
+
+    const menusIterator = iteratorFromPath("//menu//link");
+
+    let menus = [];
+
+    let currentMenu = menusIterator.iterateNext();
+
+    while (currentMenu) {
+      menus.push({
+        link: currentMenu.getAttribute("url"),
+        label: currentMenu.textContent,
+      });
+
+      currentMenu = menusIterator.iterateNext();
+    }
+
+    const conferenceTitle = valueFromPath("//title");
+    const conferenceSubtitle = valueFromPath("//subtitle");
+    const submissionType = attributeFromPath("//submissions", "type");
+    const submissionsLabel = valueFromPath("//submissions");
+    let submissionsUrl = "#submissions";
+
+    if (submissionType == "external") {
+      submissionsUrl = attributeFromPath("//submissions", "url");
+    }
+
+    const conferenceDescription = valueFromPath("//description");
+
+    const Header = {
+      view: (vnode) => {
+        return m("header", [
+          m("hgroup", [m("h1", conferenceTitle), m("p", conferenceSubtitle)]),
+          m("nav", [
+            m("ul", [
+              makeMenuItem(submissionsUrl, submissionsLabel),
+              ...menus.map((i) => makeMenuItem(i.link, i.label)),
+            ]),
+          ]),
+        ]);
+      },
+    };
+
+    const Footer = {
+      view: (vnode) => {
+        return m(
+          "footer",
+          m("small", m.trust(`Built with <a href="">Picoconf</a>.`)),
+        );
+      },
+    };
+
+    /*
+    == Landing ==============================
+
+    The landing components is what the user first sees when
+    they open the website.
+
+    It contains all the relevant information about the conference.
+    */
+
+    const Landing = {
+      view: (vnode) => {
+        return [m(Header), m(Main), m(Footer)];
+      },
+    };
+
+    const makeSection = (path) => {
+      return m("article", m.trust(valueFromPath(path)));
+    };
+
+    const Main = {
+      view: (vnode) => {
+        return m("main", [
+          makeSection("//description"),
+          makeSection("//location"),
+          makeSection("//sponsors"),
+        ]);
+      },
+    };
+
+    /*
+    == Talk =================================
+
+    This component is responsible for rendering a talk.
+    Since we don't yet have any talk it is left unimplemented for now.
+
+    It will contain the video for the talk using p2p technology
+    to play it and also a mini bio for the speaker.
+    */
+
+    const Talk = {
+      view: (vnode) => {
+        return m("");
+      },
+    };
+
+    /*
+    == Routes ===============================
+
+    There are only two routes. 
+
+    One is the landing page for the conference, and the other is a route to render the selected talk.
+    */
+
+    document.title = conferenceTitle;
+
+    m.route(root, "/", {
+      "/": Landing,
+      "/talk": Talk,
+    });
+  </script>
+</html>
